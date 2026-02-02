@@ -75,6 +75,19 @@ export const issueService = {
       throw new Error("Impossible de supprimer l'issue");
     }
   },
+
+  async getChildren(parentId: number): Promise<Issue[]> {
+    const response = await fetch(`${API_URL}/issues/${parentId}/children`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Impossible de récupérer les sous-tâches");
+    }
+
+    return response.json();
+  },
 };
 
 export default issueService;

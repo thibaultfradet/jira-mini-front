@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { projectService } from "@/services/project";
 import type { Project as ProjectType, Issue } from "@/types";
-import IssueTable from "./project/IssueTable";
+import { IssueTable } from "@/components/issue-table";
 import IssueDialog from "./project/IssueDialog";
 
 export default function Project() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [project, setProject] = useState<ProjectType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,9 +33,15 @@ export default function Project() {
     fetchProject();
   }, [id]);
 
-  const handleIssueClick = (issueId: number) => {
-    setSelectedIssueId(issueId);
-    setIsDialogOpen(true);
+  const handleIssueClick = (issue: Issue) => {
+    if (issue.type === "epic") {
+      // Navigate to epic view page
+      navigate(`/project/${id}/epic/${issue.id}`);
+    } else {
+      // Open modal for tasks/stories/bugs
+      setSelectedIssueId(issue.id);
+      setIsDialogOpen(true);
+    }
   };
 
   const handleDialogClose = (open: boolean) => {
