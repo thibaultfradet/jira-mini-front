@@ -1,0 +1,370 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { projectService } from "@/services/project";
+import { issueService } from "@/services/issue";
+import type { Project, Issue } from "@/types";
+import { FolderKanban, Zap, SquareCheck, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type CreateType = "project" | "epic" | "task" | null;
+
+interface CreateModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const createTypes = [
+  {
+    id: "project" as const,
+    label: "Projet",
+    description: "Créer un nouveau projet pour organiser vos tickets",
+    icon: FolderKanban,
+    color: "text-blue-500",
+    bgColor: "bg-blue-50 hover:bg-blue-100",
+    borderColor: "border-blue-200",
+  },
+  {
+    id: "epic" as const,
+    label: "Epic",
+    description: "Créer une epic pour regrouper des tâches liées",
+    icon: Zap,
+    color: "text-violet-500",
+    bgColor: "bg-violet-50 hover:bg-violet-100",
+    borderColor: "border-violet-200",
+  },
+  {
+    id: "task" as const,
+    label: "Tâche",
+    description: "Créer une tâche à rattacher à une epic",
+    icon: SquareCheck,
+    color: "text-green-500",
+    bgColor: "bg-green-50 hover:bg-green-100",
+    borderColor: "border-green-200",
+  },
+];
+
+export default function CreateModal({ open, onOpenChange }: CreateModalProps) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [selectedType, setSelectedType] = useState<CreateType>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Form fields
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [selectedEpicId, setSelectedEpicId] = useState<string>("");
+
+  // Data for selects
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [epics, setEpics] = useState<Issue[]>([]);
+
+  useEffect(() => {
+    if (open && step === 2 && (selectedType === "epic" || selectedType === "task")) {
+      fetchProjects();
+    }
+  }, [open, step, selectedType]);
+
+  useEffect(() => {
+    if (selectedProjectId && selectedType === "task") {
+      fetchEpics(Number(selectedProjectId));
+    }
+  }, [selectedProjectId, selectedType]);
+
+  const fetchProjects = async () => {
+    try {
+      const data = await projectService.getAll();
+      setProjects(data);
+    } catch (err) {
+      console.error("Failed to fetch projects:", err);
+    }
+  };
+
+  const fetchEpics = async (projectId: number) => {
+    try {
+      const project = await projectService.getById(projectId);
+      const projectEpics = (project.issues || []).filter((i) => i.type === "epic");
+      setEpics(projectEpics);
+    } catch (err) {
+      console.error("Failed to fetch epics:", err);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1);
+    setSelectedType(null);
+    setName("");
+    setDescription("");
+    setTitle("");
+    setSelectedProjectId("");
+    setSelectedEpicId("");
+    setError("");
+    setEpics([]);
+  };
+
+  const handleClose = (open: boolean) => {
+    if (!open) {
+      resetForm();
+    }
+    onOpenChange(open);
+  };
+
+  const handleTypeSelect = (type: CreateType) => {
+    setSelectedType(type);
+    setStep(2);
+  };
+
+  const handleBack = () => {
+    setStep(1);
+    setSelectedType(null);
+    setError("");
+  };
+
+  const handleSubmit = async () => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      if (selectedType === "project") {
+        await projectService.create({ name, description });
+      } else if (selectedType === "epic") {
+        await issueService.create({
+          title,
+          type: "epic",
+          projectId: Number(selectedProjectId),
+        });
+      } else if (selectedType === "task") {
+        await issueService.create({
+          title,
+          type: "task",
+          parentId: Number(selectedEpicId),
+        });
+      }
+      handleClose(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const isFormValid = () => {
+    if (selectedType === "project") {
+      return name.trim().length > 0;
+    }
+    if (selectedType === "epic") {
+      return title.trim().length > 0 && selectedProjectId;
+    }
+    if (selectedType === "task") {
+      return title.trim().length > 0 && selectedEpicId;
+    }
+    return false;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {step === 2 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 -ml-1"
+                onClick={handleBack}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            {step === 1 ? "Créer" : `Nouveau ${createTypes.find((t) => t.id === selectedType)?.label}`}
+          </DialogTitle>
+        </DialogHeader>
+
+        {step === 1 && (
+          <div className="grid grid-cols-3 gap-3 py-4">
+            {createTypes.map((type) => {
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.id}
+                  onClick={() => handleTypeSelect(type.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-3 p-4 rounded-lg border-2 transition-all cursor-pointer",
+                    type.bgColor,
+                    type.borderColor
+                  )}
+                >
+                  <div className={cn("p-3 rounded-lg bg-white shadow-sm", type.color)}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <span className="font-medium text-sm">{type.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {step === 2 && selectedType === "project" && (
+          <div className="space-y-4 py-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du projet</Label>
+              <Input
+                id="name"
+                placeholder="Mon projet"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optionnel)</Label>
+              <Textarea
+                id="description"
+                placeholder="Description du projet..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => handleClose(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSubmit} disabled={!isFormValid() || isLoading}>
+                {isLoading ? "Création..." : "Créer"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && selectedType === "epic" && (
+          <div className="space-y-4 py-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="project">Projet</Label>
+              <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={String(project.id)}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Titre de l'epic</Label>
+              <Input
+                id="title"
+                placeholder="Mon epic"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => handleClose(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSubmit} disabled={!isFormValid() || isLoading}>
+                {isLoading ? "Création..." : "Créer"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && selectedType === "task" && (
+          <div className="space-y-4 py-4">
+            {error && (
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="project">Projet</Label>
+              <Select value={selectedProjectId} onValueChange={(val) => {
+                setSelectedProjectId(val);
+                setSelectedEpicId("");
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={String(project.id)}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="epic">Epic</Label>
+              <Select
+                value={selectedEpicId}
+                onValueChange={setSelectedEpicId}
+                disabled={!selectedProjectId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedProjectId ? "Sélectionner une epic" : "Sélectionner d'abord un projet"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {epics.map((epic) => (
+                    <SelectItem key={epic.id} value={String(epic.id)}>
+                      {epic.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="title">Titre de la tâche</Label>
+              <Input
+                id="title"
+                placeholder="Ma tâche"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => handleClose(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSubmit} disabled={!isFormValid() || isLoading}>
+                {isLoading ? "Création..." : "Créer"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

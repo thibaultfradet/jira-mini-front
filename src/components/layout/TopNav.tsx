@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Search, Settings, User, LogOut } from "lucide-react";
+import CreateModal from "./CreateModal";
 
 // Generate a consistent dark color based on user initials
 function getAvatarColor(initials: string): string {
@@ -47,11 +49,13 @@ function getInitials(firstName: string, lastName: string): string {
 
 export default function TopNav() {
   const { user, isAdmin, logout } = useAuth();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const initials = user ? getInitials(user.firstName, user.lastName) : "??";
   const avatarColor = getAvatarColor(initials);
 
   return (
+    <>
     <header className="h-14 border-b bg-white flex items-center justify-between px-4 gap-4">
       {/* Left - Logo */}
       <Link to="/" className="flex items-center gap-2 shrink-0">
@@ -83,7 +87,7 @@ export default function TopNav() {
             className="pl-9 h-10 rounded-r-none border-r-0"
           />
         </div>
-        <Button className="h-10 rounded-l-none gap-1.5">
+        <Button className="h-10 rounded-l-none gap-1.5" onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Créer</span>
         </Button>
@@ -135,5 +139,8 @@ export default function TopNav() {
         </DropdownMenu>
       </div>
     </header>
+
+    <CreateModal open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen} />
+    </>
   );
 }

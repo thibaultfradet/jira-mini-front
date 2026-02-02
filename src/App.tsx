@@ -6,6 +6,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import UserForm from "@/pages/UserForm";
+import Project from "@/pages/Project";
 import { AuthenticatedLayout } from "./components/layout";
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           {/* Routes protégées avec Layout */}
           <Route element={<AuthenticatedLayout />}>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/projects/:id" element={<Project />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/users/new" element={<UserForm />} />
             <Route path="/settings/users/:id/edit" element={<UserForm />} />
