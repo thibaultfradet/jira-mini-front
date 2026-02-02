@@ -19,6 +19,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/password": {
+        target: "https://localhost",
+        changeOrigin: true,
+        secure: false,
+      },
       "/auth": {
         target: "https://localhost",
         changeOrigin: true,
