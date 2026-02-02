@@ -37,7 +37,7 @@ export default function Layout() {
               authService.logout();
               window.location.href = "/login";
             }}
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className="text-sm text-gray-600 hover:text-gray-900 cursor-pointer"
           >
             Déconnexion
           </button>

@@ -67,6 +67,7 @@ npm run preview  # Preview production build
 - Pages go in `src/pages/`
 - Reusable components go in `src/components/`
 - Services/API calls go in `src/services/`
+- All button components must include `cursor-pointer` class
 
 ## Adding shadcn/ui Components
 
