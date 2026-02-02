@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authService } from "@/services/auth";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -172,15 +174,29 @@ export default function Login() {
                   Mot de passe oublié ?
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-11"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11 pr-11"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <Button
@@ -216,16 +232,6 @@ export default function Login() {
               )}
             </Button>
           </form>
-
-          <p className="mt-8 text-center text-sm text-muted-foreground">
-            Pas encore de compte ?{" "}
-            <Link
-              to="#"
-              className="font-medium text-primary hover:text-primary/80"
-            >
-              Créer un compte
-            </Link>
-          </p>
         </div>
       </div>
     </div>
