@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authService } from "@/services/auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { refetchUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +23,7 @@ export default function Login() {
 
     try {
       await authService.login({ email, password });
+      await refetchUser();
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");
