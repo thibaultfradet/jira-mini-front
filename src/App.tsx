@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import Settings from "@/pages/Settings";
 import UserForm from "@/pages/UserForm";
 import Project from "@/pages/Project";
+import ActiveSprint from "@/pages/ActiveSprint";
 import { AuthenticatedLayout } from "./components/layout";
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route element={<AuthenticatedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects/:id" element={<Project />} />
+            <Route path="/active-sprint" element={<ActiveSprint />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/users/new" element={<UserForm />} />
             <Route path="/settings/users/:id/edit" element={<UserForm />} />

@@ -30,11 +30,13 @@ export interface Issue {
   reporter: User | null;
   comments?: Comment[];
   issues?: Issue[];
+  children?: Issue[];
+  sprints?: Sprint[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type IssueType = "epic" | "story" | "task" | "bug";
+export type IssueType = "epic" | "task" | "bug" | "sub_task";
 export type IssueStatus = "todo" | "in_progress" | "done";
 
 export interface Comment {
@@ -52,6 +54,7 @@ export interface Sprint {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  issues?: Issue[];
   createdAt: string;
   updatedAt: string;
 }

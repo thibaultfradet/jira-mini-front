@@ -50,6 +50,7 @@ export const issueService = {
       status: string;
       assigneeId: number | null;
       storyPoints: number | null;
+      sprintId: number | null;
     }>
   ): Promise<Issue> {
     const response = await fetch(`${API_URL}/issues/${id}`, {
@@ -74,6 +75,19 @@ export const issueService = {
     if (!response.ok) {
       throw new Error("Impossible de supprimer l'issue");
     }
+  },
+
+  async getBacklog(): Promise<Issue[]> {
+    const response = await fetch(`${API_URL}/issues/backlog`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Impossible de récupérer le backlog");
+    }
+
+    return response.json();
   },
 
   async getChildren(parentId: number): Promise<Issue[]> {
