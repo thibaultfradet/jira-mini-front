@@ -20,10 +20,17 @@ export default function KanbanCard({ issue, projectKey = "PROJ", onClick }: Kanb
   const typeConfig = typeIcons[issue.type] || typeIcons.task;
   const TypeIcon = typeConfig.icon;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("application/kanban-issue-id", String(issue.id));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
   return (
     <div
       onClick={onClick}
-      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      draggable
+      onDragStart={handleDragStart}
+      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
     >
       <p className="text-sm mb-2 line-clamp-2">{issue.title}</p>
 

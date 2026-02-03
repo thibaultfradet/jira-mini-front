@@ -1,12 +1,12 @@
-import type { Issue } from "@/types";
+import type { Issue, IssueStatus } from "@/types";
 import { statusConfig } from "@/helpers";
-import type { IssueStatus } from "@/types";
 import KanbanColumn from "./KanbanColumn";
 
 interface KanbanBoardProps {
   issues: Issue[];
   projectKey?: string;
   onCardClick?: (issue: Issue) => void;
+  onStatusChange?: (issueId: number, targetStatus: IssueStatus) => void;
 }
 
 const columns: { status: IssueStatus; label: string }[] = [
@@ -15,7 +15,12 @@ const columns: { status: IssueStatus; label: string }[] = [
   { status: "done", label: statusConfig.done.label },
 ];
 
-export default function KanbanBoard({ issues, projectKey, onCardClick }: KanbanBoardProps) {
+export default function KanbanBoard({
+  issues,
+  projectKey,
+  onCardClick,
+  onStatusChange,
+}: KanbanBoardProps) {
   const issuesByStatus = (status: IssueStatus) =>
     issues.filter((issue) => issue.status === status);
 
@@ -29,6 +34,7 @@ export default function KanbanBoard({ issues, projectKey, onCardClick }: KanbanB
           issues={issuesByStatus(col.status)}
           projectKey={projectKey}
           onCardClick={onCardClick}
+          onDrop={onStatusChange}
         />
       ))}
     </div>
