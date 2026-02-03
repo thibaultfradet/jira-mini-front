@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { projectService } from "@/services/project";
 import type { Project as ProjectType, Issue } from "@/types";
 import { IssueTable } from "@/components/issue-table";
@@ -76,15 +75,11 @@ export default function Project() {
         )}
       </div>
 
-      <Card className="flex-1">
-        <CardContent className="pt-4">
-          <IssueTable
-            issues={project.issues || []}
-            onIssueClick={handleIssueClick}
-          />
-        </CardContent>
-      </Card>
-
+        <IssueTable
+          issues={project.issues || []}
+          onIssueClick={handleIssueClick}
+        />
+      
       <IssueDialog
         issueId={selectedIssueId}
         open={isDialogOpen}

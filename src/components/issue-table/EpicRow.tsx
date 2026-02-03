@@ -3,7 +3,6 @@ import {
   Zap,
   ChevronRight,
   ChevronDown,
-  Equal,
   Plus,
   ArrowUpRight,
   Loader2,
@@ -41,7 +40,7 @@ export default function EpicRow({
   return (
     <Fragment>
       <TableRow
-        className="cursor-pointer hover:bg-muted/50 h-11 group border-0"
+        className="cursor-pointer hover:bg-muted/50 h-11 group"
         onClick={onClick}
       >
         <TableCell className="w-10 pr-0 pl-4">
@@ -105,8 +104,7 @@ export default function EpicRow({
 
         <TableCell className="py-2">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Equal className="h-4 w-4" />
-            <span className="text-sm">Medium</span>
+            <span className="text-sm">-</span>
           </div>
         </TableCell>
 

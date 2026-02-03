@@ -70,7 +70,7 @@ export default function IssueTable({
             <TableHead className="w-10"></TableHead>
             <TableHead className="min-w-100">Tickets</TableHead>
             <TableHead className="w-48">Personne assignée</TableHead>
-            <TableHead className="w-32">Priorité</TableHead>
+            <TableHead className="w-32">Points</TableHead>
             <TableHead className="w-32">État</TableHead>
           </TableRow>
         </TableHeader>

@@ -1,4 +1,4 @@
-import { Bookmark, Equal } from "lucide-react";
+import { Bookmark } from "lucide-react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import AssigneeCell from "@/components/AssigneeCell";
@@ -14,7 +14,7 @@ interface TaskRowProps {
 export default function TaskRow({ task, projectKey, onClick }: TaskRowProps) {
   return (
     <TableRow
-      className="cursor-pointer hover:bg-muted/50 h-11 border-0"
+      className="cursor-pointer hover:bg-muted/50 h-11"
       onClick={onClick}
     >
       <TableCell className="w-10 pr-0 pl-4">
@@ -40,8 +40,7 @@ export default function TaskRow({ task, projectKey, onClick }: TaskRowProps) {
 
       <TableCell className="py-2">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Equal className="h-4 w-4" />
-          <span className="text-sm">Medium</span>
+          <span className="text-sm">{task.storyPoints ? task.storyPoints : "-"}</span>
         </div>
       </TableCell>
 
