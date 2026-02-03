@@ -12,6 +12,8 @@ export interface Project {
   id: number;
   name: string;
   description: string;
+  openedIssueCount: number;
+  finishedIssueCount: number;
   createdAt: string;
   updatedAt: string;
   issues?: Issue[];
