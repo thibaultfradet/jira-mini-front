@@ -15,7 +15,8 @@ export default function SprintSection({ sprint, onDrop }: SprintSectionProps) {
   const issues = sprint.issues || [];
   const totalPoints = issues.reduce((sum, i) => sum + (i.storyPoints || 0), 0);
 
-  const canDrop = sprint.isActive && !!onDrop;
+  const isFutureSprint = new Date(sprint.endDate) >= new Date();
+  const canDrop = (sprint.isActive || isFutureSprint) && !!onDrop;
 
   const handleDragOver = (e: React.DragEvent) => {
     if (!canDrop) return;

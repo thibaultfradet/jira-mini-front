@@ -67,7 +67,12 @@ export default function BacklogTab() {
   };
 
   const handleDropOnSprint = (issueId: number, sprintId: number) => {
-    setPendingDrop({ issueId, target: { type: "sprint", sprintId } });
+    const targetSprint = sprints.find((s) => s.id === sprintId);
+    if (targetSprint?.isActive) {
+      setPendingDrop({ issueId, target: { type: "sprint", sprintId } });
+    } else {
+      moveIssueToSprint(issueId, sprintId);
+    }
   };
 
   const handleDropOnBacklog = (issueId: number) => {
