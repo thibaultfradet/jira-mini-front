@@ -33,14 +33,16 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md p-8">
+        <DialogHeader className="space-y-3">
           <DialogTitle>{title}</DialogTitle>
           {description && (
-            <DialogDescription>{description}</DialogDescription>
+            <DialogDescription className="text-sm leading-relaxed">
+              {description}
+            </DialogDescription>
           )}
         </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-3 pt-4">
           <Button
             variant="outline"
             onClick={onCancel}
