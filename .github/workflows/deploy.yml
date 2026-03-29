@@ -35,6 +35,7 @@ jobs:
     name: Deploy
     needs: ci
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/download-artifact@v4
         with:
