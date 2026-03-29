@@ -1,51 +1,33 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import type { User } from "@/types";
 import { authService } from "@/services/auth";
 import { getUserFromToken, isTokenExpired } from "@/lib/jwt";
-
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  isAdmin: boolean;
-  logout: () => void;
-  refetchUser: () => void;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadUserFromToken = () => {
+  const [user, setUser] = useState<User | null>(() => {
     const token = authService.getToken();
+    if (!token) return null;
+    if (isTokenExpired(token)) {
+      authService.logout();
+      return null;
+    }
+    return getUserFromToken(token);
+  });
+  const [isLoading] = useState(false);
 
+  const refetchUser = useCallback(() => {
+    const token = authService.getToken();
     if (!token) {
       setUser(null);
-      setIsLoading(false);
       return;
     }
-
     if (isTokenExpired(token)) {
       authService.logout();
       setUser(null);
-      setIsLoading(false);
       return;
     }
-
-    const userData = getUserFromToken(token);
-    setUser(userData);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    loadUserFromToken();
+    setUser(getUserFromToken(token));
   }, []);
 
   const logout = () => {
@@ -63,18 +45,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         isAdmin,
         logout,
-        refetchUser: loadUserFromToken,
+        refetchUser,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
 }
