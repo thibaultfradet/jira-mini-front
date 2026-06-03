@@ -1,8 +1,8 @@
-import { useCallback, useState, type ReactNode } from "react";
-import type { User } from "@/types";
-import { authService } from "@/services/auth";
-import { getUserFromToken, isTokenExpired } from "@/lib/jwt";
-import { AuthContext } from "./auth-context";
+import { useCallback, useState, type ReactNode } from 'react';
+import type { User } from '@/types/user';
+import { authService } from '@/services/auth';
+import { getUserFromToken, isTokenExpired } from '@/lib/jwt';
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
@@ -30,24 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(getUserFromToken(token));
   }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    authService.serverLogout();
     authService.logout();
     setUser(null);
-    window.location.href = "/login";
-  };
+    window.location.href = '/login';
+  }, []);
 
-  const isAdmin = user?.roles.includes("ROLE_ADMIN") ?? false;
+  const isAdmin = user?.roles.includes('ROLE_ADMIN') ?? false;
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAdmin,
-        logout,
-        refetchUser,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, logout, refetchUser }}>
       {children}
     </AuthContext.Provider>
   );

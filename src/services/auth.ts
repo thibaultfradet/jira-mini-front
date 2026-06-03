@@ -7,14 +7,9 @@ interface LoginCredentials {
 
 interface AuthResponse {
   token: string;
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-  };
+  refresh_token: string;
 }
 
-// Cookie utilities
 export const cookies = {
   set(name: string, value: string, days: number = 7): void {
     const expires = new Date();
@@ -24,9 +19,9 @@ export const cookies = {
 
   get(name: string): string | null {
     const nameEQ = `${name}=`;
-    const cookies = document.cookie.split(";");
-    for (const cookie of cookies) {
-      const c = cookie.trim();
+    const parts = document.cookie.split(';');
+    for (const part of parts) {
+      const c = part.trim();
       if (c.indexOf(nameEQ) === 0) {
         return decodeURIComponent(c.substring(nameEQ.length));
       }
@@ -39,36 +34,43 @@ export const cookies = {
   },
 };
 
-// Auth service
 export const authService = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const response = await fetch(`${API_URL}/auth`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || "Identifiants invalides");
+      throw new Error((error as { message?: string }).message ?? 'Identifiants invalides');
     }
 
-    const data: AuthResponse = await response.json();
-
-    // Store token in cookies
-    cookies.set("auth_token", data.token, 7);
-
+    const data = await response.json() as AuthResponse;
+    cookies.set('auth_token', data.token, 7);
+    if (data.refresh_token) cookies.set('refresh_token', data.refresh_token, 30);
     return data;
   },
 
+  serverLogout(): void {
+    const refreshToken = cookies.get('refresh_token');
+    if (refreshToken) {
+      fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      }).catch(() => {});
+    }
+  },
+
   logout(): void {
-    cookies.remove("auth_token");
+    cookies.remove('auth_token');
+    cookies.remove('refresh_token');
   },
 
   getToken(): string | null {
-    return cookies.get("auth_token");
+    return cookies.get('auth_token');
   },
 
   isAuthenticated(): boolean {
