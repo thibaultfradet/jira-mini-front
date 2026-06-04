@@ -1,33 +1,17 @@
-import type { Project, Issue } from "@/types";
-import { cookies } from "./auth";
+import type { DashboardData } from '@/types/custom/dashboard';
+import { fetchWithRefresh } from '@/utils/fetchWithRefresh';
 
-const API_URL = import.meta.env.VITE_API_URL + "/api";
-
-const getAuthHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${cookies.get("auth_token")}`,
-});
-
-export interface DashboardResponse {
-  projects: Project[];
-  myTasks: {
-    inProgress: Issue[];
-    todo: Issue[];
-  };
-}
+const BASE = `${import.meta.env.VITE_API_URL}/api/dashboard`;
 
 export const dashboardService = {
-  async getDashboard(): Promise<DashboardResponse> {
-    const response = await fetch(`${API_URL}/dashboard`, {
-      method: "GET",
-      headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Impossible de récupérer le tableau de bord");
+  async getDashboard(logout: () => void): Promise<DashboardData | null> {
+    try {
+      const data = await fetchWithRefresh(logout, BASE);
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return data.data as DashboardData;
+    } catch {
+      return null;
     }
-
-    return response.json();
   },
 };
 

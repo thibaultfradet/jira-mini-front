@@ -1,80 +1,86 @@
-import type { User } from "@/types";
-import { cookies } from "./auth";
+import type { User } from '@/types/user';
+import { fetchWithRefresh } from '@/utils/fetchWithRefresh';
+import { showErrorToast } from '@/utils/toastHelpers';
 
-const API_URL = import.meta.env.VITE_API_URL + "/api";
-
-const getAuthHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${cookies.get("auth_token")}`,
-});
+const BASE = `${import.meta.env.VITE_API_URL}/api/users`;
 
 export const userService = {
-  async getAll(): Promise<User[]> {
-    const response = await fetch(`${API_URL}/users`, {
-      method: "GET",
-      headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Impossible de récupérer les utilisateurs");
+  async getAll(logout: () => void): Promise<User[]> {
+    try {
+      const data = await fetchWithRefresh(logout, BASE);
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return (data.data as User[]) ?? [];
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : 'Impossible de charger les utilisateurs');
+      return [];
     }
-
-    return response.json();
   },
 
-  async getById(id: number): Promise<User> {
-    const response = await fetch(`${API_URL}/users/${id}`, {
-      method: "GET",
-      headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Utilisateur non trouvé");
+  async getById(logout: () => void, id: number): Promise<User | null> {
+    try {
+      const data = await fetchWithRefresh(logout, `${BASE}/${id}`);
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return data.data as User;
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : 'Utilisateur non trouvé');
+      return null;
     }
+  },
 
-    return response.json();
+  async getMe(logout: () => void): Promise<User | null> {
+    try {
+      const data = await fetchWithRefresh(logout, `${BASE}/me`);
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return data.data as User;
+    } catch {
+      return null;
+    }
+  },
+
+  async create(
+    logout: () => void,
+    payload: { email: string; firstName: string; lastName: string; isAdmin?: boolean },
+  ): Promise<User | null> {
+    try {
+      const data = await fetchWithRefresh(logout, BASE, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return data.data as User;
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : "Impossible de créer l'utilisateur");
+      return null;
+    }
   },
 
   async update(
+    logout: () => void,
     id: number,
-    data: { firstName?: string; lastName?: string; roles?: string[] }
-  ): Promise<User> {
-    const response = await fetch(`${API_URL}/users/${id}`, {
-      method: "PATCH",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error("Impossible de mettre à jour l'utilisateur");
-    }
-
-    return response.json();
-  },
-
-  async delete(id: number): Promise<void> {
-    const response = await fetch(`${API_URL}/users/${id}`, {
-      method: "DELETE",
-      headers: getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error("Impossible de supprimer l'utilisateur");
+    payload: { firstName?: string; lastName?: string; email?: string; isAdmin?: boolean; isActive?: boolean; password?: string },
+  ): Promise<User | null> {
+    try {
+      const data = await fetchWithRefresh(logout, `${BASE}/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return data.data as User;
+    } catch (err) {
+      showErrorToast(err instanceof Error ? err.message : "Impossible de mettre à jour l'utilisateur");
+      return null;
     }
   },
 
-  async create(data: Omit<User, "id" | "createdAt" | "updatedAt">): Promise<User> {
-    const response = await fetch(`${API_URL}/users`, {
-      method: "POST",
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error("Impossible de créer l'utilisateur");
+  async delete(logout: () => void, id: number): Promise<boolean> {
+    try {
+      const data = await fetchWithRefresh(logout, `${BASE}/${id}`, { method: 'DELETE' });
+      if (!data.success) throw new Error(data.message ?? 'Erreur');
+      return true;
+    } catch {
+      showErrorToast("Impossible de supprimer l'utilisateur");
+      return false;
     }
-
-    return response.json();
   },
 };
 
