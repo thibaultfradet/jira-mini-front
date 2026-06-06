@@ -1,6 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusConfig } from "@/helpers";
+import { statusConfig } from "@/utils/issueUtils";
 
 interface StatusBadgeProps {
   status: string;

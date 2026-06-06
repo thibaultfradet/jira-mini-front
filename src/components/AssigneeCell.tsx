@@ -1,30 +1,23 @@
-import { User } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import type { User as UserType } from "@/types";
-import { getInitials, getAvatarColor } from "@/helpers";
+import { User } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 
 interface AssigneeCellProps {
-  assignee: UserType | null;
+  assignee: { id: number; firstName: string; lastName: string } | null | undefined;
 }
 
 export default function AssigneeCell({ assignee }: AssigneeCellProps) {
   if (assignee?.firstName && assignee?.lastName) {
+    const initials = getInitials(assignee.firstName, assignee.lastName);
     return (
       <div className="flex items-center gap-2">
         <Avatar className="h-6 w-6">
-          <AvatarFallback
-            className={cn(
-              "text-[10px] text-white",
-              getAvatarColor(assignee.firstName + assignee.lastName)
-            )}
-          >
-            {getInitials(assignee.firstName, assignee.lastName)}
+          <AvatarFallback className={cn('text-[10px] text-white', getAvatarColor(initials))}>
+            {initials}
           </AvatarFallback>
         </Avatar>
-        <span className="text-sm">
-          {assignee.firstName} {assignee.lastName}
-        </span>
+        <span className="text-sm">{assignee.firstName} {assignee.lastName}</span>
       </div>
     );
   }

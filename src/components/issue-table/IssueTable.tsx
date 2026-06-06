@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -6,10 +6,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import type { Issue } from "@/types";
-import { issueService } from "@/services/issue";
-import EpicRow from "./EpicRow";
+} from '@/components/ui/table';
+import type { Issue } from '@/types/issue';
+import { issueService } from '@/services/issue';
+import { useAuth } from '@/contexts/useAuth';
+import EpicRow from './EpicRow';
 
 interface IssueTableProps {
   issues: Issue[];
@@ -20,17 +21,16 @@ interface IssueTableProps {
 
 export default function IssueTable({
   issues,
-  projectKey = "PROJ",
+  projectKey = 'PROJ',
   onIssueClick,
   onAddChildClick,
 }: IssueTableProps) {
+  const { logout } = useAuth();
   const [expandedEpics, setExpandedEpics] = useState<Set<number>>(new Set());
   const [loadingEpics, setLoadingEpics] = useState<Set<number>>(new Set());
-  const [childrenByEpic, setChildrenByEpic] = useState<Record<number, Issue[]>>(
-    {}
-  );
+  const [childrenByEpic, setChildrenByEpic] = useState<Record<number, Issue[]>>({});
 
-  const epics = issues.filter((issue) => issue.type === "epic");
+  const epics = issues.filter((issue) => issue.type === 'epic');
 
   const toggleEpic = async (epicId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -46,18 +46,13 @@ export default function IssueTable({
 
       if (!childrenByEpic[epicId]) {
         setLoadingEpics((prev) => new Set(prev).add(epicId));
-        try {
-          const children = await issueService.getChildren(epicId);
-          setChildrenByEpic((prev) => ({ ...prev, [epicId]: children }));
-        } catch (error) {
-          console.error("Failed to fetch children:", error);
-        } finally {
-          setLoadingEpics((prev) => {
-            const next = new Set(prev);
-            next.delete(epicId);
-            return next;
-          });
-        }
+        const children = await issueService.getChildren(logout, epicId);
+        setChildrenByEpic((prev) => ({ ...prev, [epicId]: children }));
+        setLoadingEpics((prev) => {
+          const next = new Set(prev);
+          next.delete(epicId);
+          return next;
+        });
       }
     }
   };
@@ -77,10 +72,7 @@ export default function IssueTable({
         <TableBody>
           {epics.length === 0 ? (
             <TableRow>
-              <TableCell
-                colSpan={5}
-                className="text-center py-8 text-muted-foreground"
-              >
+              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 Aucun ticket
               </TableCell>
             </TableRow>
@@ -95,9 +87,7 @@ export default function IssueTable({
                 children={childrenByEpic[epic.id] || []}
                 onToggle={(e) => toggleEpic(epic.id, e)}
                 onClick={() => onIssueClick(epic)}
-                onAddChild={
-                  onAddChildClick ? () => onAddChildClick(epic.id) : undefined
-                }
+                onAddChild={onAddChildClick ? () => onAddChildClick(epic.id) : undefined}
                 onChildClick={onIssueClick}
               />
             ))
