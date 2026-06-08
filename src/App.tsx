@@ -13,7 +13,9 @@ import Project from '@/pages/Project';
 import Backlog from '@/pages/Backlog';
 import SprintBoard from '@/pages/SprintBoard';
 import Profile from '@/pages/Profile';
+import Stats from '@/pages/Stats';
 import AdminTeams from '@/pages/admin/Teams';
+import NotFound from '@/pages/NotFound';
 
 function App() {
   return (
@@ -32,6 +34,7 @@ function App() {
             <Route path="/backlog" element={<Backlog />} />
             <Route path="/teams/:teamId/sprint" element={<SprintBoard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/stats" element={<Stats />} />
 
             {/* Admin-only routes */}
             <Route element={<AdminRoute />}>
@@ -40,6 +43,8 @@ function App() {
               <Route path="/settings/users/:id/edit" element={<UserForm />} />
               <Route path="/settings/teams" element={<AdminTeams />} />
             </Route>
+
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </AuthProvider>
