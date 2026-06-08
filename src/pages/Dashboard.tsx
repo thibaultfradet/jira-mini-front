@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Bug, BookOpen, CheckSquare, Layers } from "lucide-react";
-import { dashboardService } from "@/services/dashboard";
-import type { DashboardResponse } from "@/services/dashboard";
-import { statusConfig } from "@/helpers";
-import ProjectCard from "@/components/ProjectCard";
-import type { Issue, IssueType } from "@/types";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Bug, BookOpen, CheckSquare, Layers, AlertTriangle } from 'lucide-react';
+import { dashboardService } from '@/services/dashboard';
+import { useAuth } from '@/contexts/useAuth';
+import { statusConfig } from '@/utils/issueUtils';
+import ProjectCard from '@/components/ProjectCard';
+import type { DashboardData } from '@/types/custom/dashboard';
+import type { IssueType } from '@/types/issue';
+import { getDeadlineBadgeClass, formatDate } from '@/utils/dateUtils';
 
 const issueTypeIcons: Record<IssueType, React.ReactNode> = {
   bug: <Bug className="h-4 w-4 text-red-500" />,
@@ -15,22 +17,16 @@ const issueTypeIcons: Record<IssueType, React.ReactNode> = {
 };
 
 export default function Dashboard() {
-  const [data, setData] = useState<DashboardResponse | null>(null);
+  const { logout } = useAuth();
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const result = await dashboardService.getDashboard();
-        setData(result);
-      } catch (error) {
-        console.error("Erreur lors du chargement du tableau de bord:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, []);
+    dashboardService.getDashboard(logout).then((result) => {
+      setData(result);
+      setLoading(false);
+    });
+  }, [logout]);
 
   if (loading) {
     return (
@@ -46,43 +42,31 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Titre */}
       <div>
         <h1 className="text-2xl font-bold">Tableau de bord</h1>
-        <p className="text-muted-foreground mt-2">
-          Bienvenue sur Mini Jira ! Vous êtes connecté.
-        </p>
+        <p className="text-muted-foreground mt-1">Bienvenue sur Mini Jira !</p>
       </div>
 
-      {/* Section Projets */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Espaces récents</h2>
-          <Link
-            to="#"
-            className="text-sm text-primary hover:underline cursor-pointer"
-          >
-            Afficher tous les espaces
-          </Link>
+          <h2 className="text-lg font-semibold">Projets récents</h2>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {projects.map((project, index) => (
             <ProjectCard key={project.id} project={project} index={index} />
           ))}
+          {projects.length === 0 && (
+            <p className="text-sm text-muted-foreground col-span-full py-4">Aucun projet.</p>
+          )}
         </div>
       </div>
 
-      {/* Section Tâches assignées */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Mes tâches assignées</h2>
 
-        {/* En cours */}
         {inProgressIssues.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wide">
-              EN COURS
-            </h3>
+            <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wide">EN COURS</h3>
             <div className="space-y-1">
               {inProgressIssues.map((issue) => (
                 <IssueRow key={issue.id} issue={issue} />
@@ -91,12 +75,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* À faire */}
         {todoIssues.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wide">
-              A FAIRE
-            </h3>
+            <h3 className="text-xs font-bold text-muted-foreground mb-3 tracking-wide">À FAIRE</h3>
             <div className="space-y-1">
               {todoIssues.map((issue) => (
                 <IssueRow key={issue.id} issue={issue} />
@@ -106,46 +87,41 @@ export default function Dashboard() {
         )}
 
         {inProgressIssues.length === 0 && todoIssues.length === 0 && (
-          <p className="text-sm text-muted-foreground py-8 text-center">
-            Aucune tâche assignée.
-          </p>
+          <p className="text-sm text-muted-foreground py-8 text-center">Aucune tâche assignée.</p>
         )}
       </div>
     </div>
   );
 }
 
-function IssueRow({ issue }: { issue: Issue }) {
-  const config = statusConfig[issue.status] || statusConfig.todo;
-  const projectKey = issue.project?.name
-    ? issue.project.name.split(" ")[0].toUpperCase().slice(0, 3)
-    : "???";
-  const issueKey = `${projectKey}-${issue.id}`;
+function IssueRow({ issue }: { issue: DashboardData['myTasks']['inProgress'][0] }) {
+  const config = statusConfig[issue.status] ?? statusConfig.todo;
+  const projectKey = issue.project?.name ? issue.project.name.split(' ')[0].toUpperCase().slice(0, 3) : '???';
 
   return (
     <Link
       to={`/projects/${issue.project?.id}`}
-      className="flex items-center justify-between py-3 px-2 hover:bg-muted/50 rounded-md transition-colors group"
+      className="flex items-center justify-between py-3 px-2 hover:bg-muted/50 rounded-md transition-colors"
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="text-muted-foreground">
-          {issueTypeIcons[issue.type]}
-        </div>
+        <div className="text-muted-foreground">{issueTypeIcons[issue.type as IssueType]}</div>
         <div className="min-w-0">
           <p className="text-sm font-medium truncate">{issue.title}</p>
           <p className="text-xs text-muted-foreground">
-            {issueKey} &middot;{" "}
-            {issue.assignee
-              ? `${issue.assignee.firstName} ${issue.assignee.lastName}`
-              : ""}{" "}
-            - {issue.project?.name}
+            {projectKey}-{issue.id} · {issue.project?.name}
           </p>
         </div>
       </div>
-      <div
-        className={`shrink-0 ml-4 inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${config.className}`}
-      >
-        {config.label}
+      <div className="flex items-center gap-2 shrink-0 ml-4">
+        {issue.urgency === 'critical' && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+        {issue.deadline && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${getDeadlineBadgeClass(issue.deadline)}`}>
+            {formatDate(issue.deadline)}
+          </span>
+        )}
+        <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${config.className}`}>
+          {config.label}
+        </div>
       </div>
     </Link>
   );
