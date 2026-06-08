@@ -10,6 +10,7 @@ import {
 import type { Issue } from '@/types/issue';
 import { issueService } from '@/services/issue';
 import { useAuth } from '@/contexts/useAuth';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import EpicRow from './EpicRow';
 
 interface IssueTableProps {
@@ -17,6 +18,18 @@ interface IssueTableProps {
   projectKey?: string;
   onIssueClick: (issue: Issue) => void;
   onAddChildClick?: (parentId: number) => void;
+}
+
+type SortCol = 'title' | 'assignee' | 'points' | 'status';
+type SortDir = 'asc' | 'desc';
+
+const STATUS_ORDER: Record<string, number> = { todo: 0, in_progress: 1, done: 2 };
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground/60" />;
+  return dir === 'asc'
+    ? <ChevronUp className="h-3.5 w-3.5 ml-1" />
+    : <ChevronDown className="h-3.5 w-3.5 ml-1" />;
 }
 
 export default function IssueTable({
@@ -29,8 +42,41 @@ export default function IssueTable({
   const [expandedEpics, setExpandedEpics] = useState<Set<number>>(new Set());
   const [loadingEpics, setLoadingEpics] = useState<Set<number>>(new Set());
   const [childrenByEpic, setChildrenByEpic] = useState<Record<number, Issue[]>>({});
+  const [sortCol, setSortCol] = useState<SortCol>('title');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const epics = issues.filter((issue) => issue.type === 'epic');
+
+  const handleSort = (col: SortCol) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedEpics = [...epics].sort((a, b) => {
+    let cmp = 0;
+    switch (sortCol) {
+      case 'title':
+        cmp = a.title.localeCompare(b.title);
+        break;
+      case 'assignee': {
+        const nameA = a.assignee ? `${a.assignee.firstName} ${a.assignee.lastName}` : '';
+        const nameB = b.assignee ? `${b.assignee.firstName} ${b.assignee.lastName}` : '';
+        cmp = nameA.localeCompare(nameB);
+        break;
+      }
+      case 'points':
+        cmp = (a.storyPoints ?? -1) - (b.storyPoints ?? -1);
+        break;
+      case 'status':
+        cmp = (STATUS_ORDER[a.status] ?? 0) - (STATUS_ORDER[b.status] ?? 0);
+        break;
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   const toggleEpic = async (epicId: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,27 +103,39 @@ export default function IssueTable({
     }
   };
 
+  const th = (col: SortCol, label: string, className?: string) => (
+    <TableHead
+      className={`cursor-pointer select-none hover:text-foreground transition-colors ${className ?? ''}`}
+      onClick={() => handleSort(col)}
+    >
+      <div className="flex items-center">
+        {label}
+        <SortIcon active={sortCol === col} dir={sortDir} />
+      </div>
+    </TableHead>
+  );
+
   return (
-    <div className="rounded-lg border">
+    <div className="bg-card border border-border/40 mt-2">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent border-b">
-            <TableHead className="w-10"></TableHead>
-            <TableHead className="min-w-100">Tickets</TableHead>
-            <TableHead className="w-48">Personne assignée</TableHead>
-            <TableHead className="w-32">Points</TableHead>
-            <TableHead className="w-32">État</TableHead>
+            <TableHead className="w-10" />
+            {th('title',    'Tickets',           'min-w-100')}
+            {th('assignee', 'Personne assignée', 'w-48')}
+            {th('points',   'Points',            'w-32')}
+            {th('status',   'État',              'w-32')}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {epics.length === 0 ? (
+          {sortedEpics.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                 Aucun ticket
               </TableCell>
             </TableRow>
           ) : (
-            epics.map((epic) => (
+            sortedEpics.map((epic) => (
               <EpicRow
                 key={epic.id}
                 epic={epic}
