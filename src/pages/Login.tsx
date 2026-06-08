@@ -173,6 +173,7 @@ export default function Login() {
                 <Link
                   to="/forgot-password"
                   className="text-sm text-primary hover:text-primary/80"
+                  tabIndex={-1}
                 >
                   Mot de passe oublié ?
                 </Link>

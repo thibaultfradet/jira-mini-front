@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { issueService } from '@/services/issue';
 import { sprintService } from '@/services/sprint';
-import { teamService } from '@/services/team';
 import { useAuth } from '@/contexts/useAuth';
+import { useTeamPreference } from '@/contexts/useTeamPreference';
 import type { Issue } from '@/types/issue';
 import type { Sprint } from '@/types/sprint';
-import type { Team } from '@/types/team';
 import { showSuccessToast } from '@/utils/toastHelpers';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bug, BookOpen, CheckSquare, Layers, AlertTriangle, Calendar, Plus } from 'lucide-react';
@@ -28,10 +27,12 @@ const urgencyColors: Record<string, string> = {
 
 export default function Backlog() {
   const { logout } = useAuth();
+  const { teams, selectedTeamId: preferredTeamId } = useTeamPreference();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('');
+  // overrideTeamId is set when the user explicitly changes the filter locally
+  const [overrideTeamId, setOverrideTeamId] = useState<string | null>(null);
+  const selectedTeamId = overrideTeamId ?? (preferredTeamId ? String(preferredTeamId) : '');
   const [loading, setLoading] = useState(true);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -39,13 +40,8 @@ export default function Backlog() {
   const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
-    Promise.all([
-      issueService.getBacklog(logout),
-      teamService.getAll(logout),
-    ]).then(([iss, tms]) => {
+    issueService.getBacklog(logout).then((iss) => {
       setIssues(iss);
-      setTeams(tms);
-      if (tms.length > 0) setSelectedTeamId(String(tms[0].id));
       setLoading(false);
     });
   }, [logout]);
@@ -97,7 +93,7 @@ export default function Backlog() {
             </SelectContent>
           </Select>
           {teams.length > 0 && (
-            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+            <Select value={selectedTeamId} onValueChange={setOverrideTeamId}>
               <SelectTrigger className="w-44 h-8 text-sm">
                 <SelectValue placeholder="Équipe" />
               </SelectTrigger>
