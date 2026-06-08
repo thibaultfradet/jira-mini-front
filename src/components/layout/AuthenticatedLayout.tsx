@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/useAuth";
+import { TeamPreferenceProvider } from "@/contexts/TeamPreferenceContext";
 import TopNav from "./TopNav";
 import SideNav from "./SideNav";
 
@@ -40,14 +41,16 @@ export default function AuthenticatedLayout() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <TopNav />
-      <div className="flex flex-1 overflow-hidden">
-        <SideNav />
-        <main className="flex-1 p-6 overflow-auto">
-          <Outlet />
-        </main>
+    <TeamPreferenceProvider>
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
+        <TopNav />
+        <div className="flex flex-1 overflow-hidden">
+          <SideNav />
+          <main className="flex-1 p-6 overflow-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </TeamPreferenceProvider>
   );
 }

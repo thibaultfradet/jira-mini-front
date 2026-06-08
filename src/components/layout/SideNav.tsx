@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -9,28 +18,27 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { projectService } from '@/services/project';
-import { teamService } from '@/services/team';
 import type { Project } from '@/types/project';
-import type { Team } from '@/types/team';
-import { LayoutDashboard, Zap, FolderKanban, Search, Users, ListChecks } from 'lucide-react';
+import { LayoutDashboard, Zap, FolderKanban, Search, ListChecks, BarChart2, User, LogOut, ChevronUp, UserCog, UsersRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/useAuth';
+import { useTeamPreference } from '@/contexts/useTeamPreference';
+import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 
 export default function SideNav() {
   const location = useLocation();
-  const { logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
+  const { selectedTeamId } = useTeamPreference();
+  const initials = user ? getInitials(user.firstName, user.lastName) : '??';
+  const avatarColor = getAvatarColor(initials);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    Promise.all([projectService.getAll(logout), teamService.getAll(logout)]).then(([p, t]) => {
+    projectService.getAll(logout).then((p) => {
       setProjects(p);
-      setTeams(t);
-      setSelectedTeamId((current) => (current === null && t.length > 0 ? t[0].id : current));
       setIsLoading(false);
     });
   }, [logout]);
@@ -43,8 +51,9 @@ export default function SideNav() {
 
   return (
     <>
-      <aside className="w-64 border-r bg-white h-full flex flex-col overflow-y-auto">
-        <nav className="flex-1 p-4 space-y-1">
+      <aside className="w-64 border-r bg-white h-full flex flex-col">
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
           <Link
             to="/"
             className={cn(
@@ -52,7 +61,7 @@ export default function SideNav() {
               isActive('/') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <LayoutDashboard className="h-5 w-5" />
+            <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Link>
 
@@ -63,95 +72,140 @@ export default function SideNav() {
               isActive('/backlog') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
           >
-            <ListChecks className="h-5 w-5" />
+            <ListChecks className="h-4 w-4" />
             Backlog
           </Link>
 
-          {/* Team selector + active sprint */}
-          {teams.length > 0 && (
-            <>
-              <Separator className="my-2" />
-              <div className="px-3 py-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Équipe</p>
-                <select
-                  value={selectedTeamId ?? ''}
-                  onChange={(e) => setSelectedTeamId(Number(e.target.value))}
-                  className="w-full text-sm border rounded-md px-2 py-1.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-              {selectedTeamId && (
-                <Link
-                  to={`/teams/${selectedTeamId}/sprint`}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isPrefix('/teams') && isPrefix('/sprint') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  <Zap className="h-5 w-5" />
-                  Sprint actif
-                </Link>
-              )}
-            </>
-          )}
-
-          <Separator className="my-4" />
-
-          {/* Projects section */}
-          <div className="space-y-1">
-            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Projets</p>
-
-            {isLoading ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">Chargement...</div>
-            ) : displayedProjects.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-muted-foreground">Aucun projet</div>
-            ) : (
-              displayedProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  to={`/projects/${project.id}`}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive(`/projects/${project.id}`) ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                  )}
-                >
-                  <FolderKanban className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{project.name}</span>
-                </Link>
-              ))
+          <Link
+            to="/stats"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              isActive('/stats') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
             )}
+          >
+            <BarChart2 className="h-4 w-4" />
+            Statistiques
+          </Link>
 
-            {projects.length > 5 && (
-              <button
-                onClick={() => setIsDialogOpen(true)}
-                className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-              >
-                <Search className="h-4 w-4" />
-                Voir plus ({projects.length})
-              </button>
-            )}
-          </div>
-
-          {/* Members link for quick access */}
           {selectedTeamId && (
             <>
-              <Separator className="my-4" />
+              <Separator className="my-3" />
               <Link
-                to={`/teams/${selectedTeamId}/members`}
+                to={`/teams/${selectedTeamId}/sprint`}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isPrefix('/teams') && isPrefix('/members') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  isPrefix('/teams') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
-                <Users className="h-5 w-5" />
-                Membres
+                <Zap className="h-4 w-4" />
+                Sprint actif
               </Link>
             </>
           )}
+
+          <Separator className="my-3" />
+
+          {/* Projects */}
+          <p className="px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Projets</p>
+          {isLoading ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">Chargement...</div>
+          ) : displayedProjects.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-muted-foreground">Aucun projet</div>
+          ) : (
+            displayedProjects.map((project) => (
+              <Link
+                key={project.id}
+                to={`/projects/${project.id}`}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                  isActive(`/projects/${project.id}`) ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <FolderKanban className="h-4 w-4 shrink-0" />
+                <span className="truncate">{project.name}</span>
+              </Link>
+            ))
+          )}
+          {projects.length > 5 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDialogOpen(true)}
+              className="w-full justify-start gap-3 px-3 text-primary hover:text-primary hover:bg-primary/10"
+            >
+              <Search className="h-4 w-4" />
+              Voir plus ({projects.length})
+            </Button>
+          )}
+
+          {isAdmin && (
+            <>
+              <Separator className="my-3" />
+              <p className="px-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Administration</p>
+              <Link
+                to="/settings"
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive('/settings') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <UserCog className="h-4 w-4" />
+                Utilisateurs
+              </Link>
+              <Link
+                to="/settings/teams"
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                  isActive('/settings/teams') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                )}
+              >
+                <UsersRound className="h-4 w-4" />
+                Équipes
+              </Link>
+              <Separator className="my-3" />
+            </>
+          )}
         </nav>
+
+        {/* User profile — bottom */}
+        <div className="border-t p-2 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer focus:outline-none group">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className={`${avatarColor} text-white text-xs font-medium`}>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium truncate leading-tight">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                    {user?.roles.includes('ROLE_ADMIN') ? 'Administrateur' : 'Utilisateur'}
+                  </p>
+                </div>
+                <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56 mb-1">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/profile" className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  Mon profil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Déconnexion
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </aside>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
