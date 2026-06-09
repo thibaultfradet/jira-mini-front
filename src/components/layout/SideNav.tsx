@@ -66,17 +66,6 @@ export default function SideNav() {
           </Link>
 
           <Link
-            to="/backlog"
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              isActive('/backlog') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
-            <ListChecks className="h-4 w-4" />
-            Backlog
-          </Link>
-
-          <Link
             to="/stats"
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
@@ -87,20 +76,30 @@ export default function SideNav() {
             Statistiques
           </Link>
 
+          <Separator className="my-3" />
+
+          <Link
+            to="/backlog"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              isActive('/backlog') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <ListChecks className="h-4 w-4" />
+            Backlog
+          </Link>
+
           {selectedTeamId && (
-            <>
-              <Separator className="my-3" />
-              <Link
-                to={`/teams/${selectedTeamId}/sprint`}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isPrefix('/teams') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )}
-              >
-                <Zap className="h-4 w-4" />
-                Sprint actif
-              </Link>
-            </>
+            <Link
+              to={`/teams/${selectedTeamId}/sprint`}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                isPrefix('/teams') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <Zap className="h-4 w-4" />
+              Sprint actif
+            </Link>
           )}
 
           <Separator className="my-3" />

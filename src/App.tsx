@@ -14,6 +14,7 @@ import Backlog from '@/pages/Backlog';
 import SprintBoard from '@/pages/SprintBoard';
 import Profile from '@/pages/Profile';
 import Stats from '@/pages/Stats';
+import StatsChart from '@/pages/StatsChart';
 import AdminTeams from '@/pages/admin/Teams';
 import NotFound from '@/pages/NotFound';
 
@@ -35,6 +36,7 @@ function App() {
             <Route path="/teams/:teamId/sprint" element={<SprintBoard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/stats/:chartType" element={<StatsChart />} />
 
             {/* Admin-only routes */}
             <Route element={<AdminRoute />}>
