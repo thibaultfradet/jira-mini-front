@@ -17,14 +17,11 @@
 
 > **This repository contains the frontend only.** The backend lives in [jira-mini-back](../jira-mini-back/).
 
-<!-- Add a screenshot of the app here -->
-<!-- ![App Screenshot](docs/screenshot.png) -->
-
 ---
 
 ## About The Project
 
-Mini Jira Frontend provides a complete project management UI with a Kanban board, backlog management, sprint planning, and user administration. It communicates with the backend API to deliver a full Jira-like experience.
+Mini Jira is a simplified Jira clone that lets teams manage their projects, backlogs, sprints and tasks. The frontend provides a Kanban board with drag-and-drop, backlog management, sprint planning, burnup/burndown charts, in-app notifications, and user/team administration.
 
 ### Built With
 
@@ -34,9 +31,10 @@ Mini Jira Frontend provides a complete project management UI with a Kanban board
 | [TypeScript 5.9](https://www.typescriptlang.org/) | Static typing |
 | [Vite 7](https://vite.dev/) | Build tool & dev server |
 | [Tailwind CSS 4](https://tailwindcss.com/) | Utility-first CSS |
-| [shadcn/ui](https://ui.shadcn.com/) | UI components (Radix UI) |
-| [Lucide React](https://lucide.dev/) | Icons |
+| [shadcn/ui](https://ui.shadcn.com/) | UI component library (Radix UI, new-york style) |
 | [React Router 7](https://reactrouter.com/) | Client-side routing |
+| [Lucide React](https://lucide.dev/) | Icons |
+| [Sonner](https://sonner.emilkowal.ski/) | Toast notifications |
 
 ---
 
@@ -59,13 +57,11 @@ npm run dev
 
 The app is available at `http://localhost:5173`.
 
-In development, Vite proxies `/api`, `/auth`, and `/password` requests to `https://localhost` (the backend).
-
 ### Environment Variables
 
 | Variable | Description |
 |---|---|
-| `VITE_API_URL` | Backend API base URL (empty by default — uses Vite proxy in dev) |
+| `VITE_API_URL` | Backend API base URL (e.g. `http://localhost:8000`) |
 
 ### Scripts
 
@@ -78,35 +74,55 @@ In development, Vite proxies `/api`, `/auth`, and `/password` requests to `https
 
 ---
 
-## Usage
+## Features
 
 ### Authentication
-- Login with email & password
-- Forgot password & reset password flow
+- Login with email & password — JWT stored in a cookie (7 days)
+- Silent token refresh via `POST /auth/refresh`
+- Forgot password & reset password flow by email
+- Auto-redirect to `/login` on 401
 
 ### Projects
 - Create projects from the top navigation
-- Browse projects in the sidebar (with search)
-- View a project's issues in a table with expandable epics
+- Browse projects in the sidebar with live search
+- View a project's epics and tasks in an expandable table
+
+### Issues
+- Create epics, stories, tasks, and bugs with a step-by-step modal
+- Parent-child hierarchy: epic → tasks
+- Set story points, urgency (`low` / `medium` / `high` / `critical`) and deadline
+- Color-coded deadline indicator (green → orange → red)
+- Full issue detail dialog: description, subtasks (checklist), comments, assignee, status
 
 ### Kanban Board
-- Drag-and-drop issues between To Do, In Progress, and Done columns
-- Confirmation dialog when marking an issue as Done
+- Active sprint board with three columns: To Do / In Progress / Done
+- Drag-and-drop issues between columns
 - Story point totals per column
 
 ### Backlog & Sprints
-- View all sprints with their issues in collapsible sections
-- Drag issues from the backlog into active sprints
-- Story point and issue count aggregation
+- Backlog view with filters (project, assignee, status, urgency)
+- Create, edit, and delete sprints
+- Start a sprint (one active sprint per team enforced)
+- Close a sprint: move unfinished tasks to the next planned sprint or the backlog via a confirmation modal
+- Assign/unassign issues between backlog and sprints
 
-### Issue Management
-- Create epics, tasks, and bugs with a step-by-step modal
-- Parent-child hierarchy (Epic → Tasks)
-- Assign users, set story points, update status
+### Statistics
+- Burnup and burndown charts per sprint
+- Team velocity chart across past sprints
 
-### User Administration (Admin only)
-- Create, edit, and delete user accounts
-- Toggle admin role
+### Notifications
+- Bell icon with unread badge in the top navigation
+- Dropdown with the latest notifications
+- Mark individual or all notifications as read
+- Click a notification to navigate to the related issue
+
+### Profile
+- Edit personal information (first name, last name, email)
+- Change password with current password confirmation
+
+### Administration (admin only)
+- User management: create, edit, activate/deactivate accounts, toggle admin role
+- Team management: create, edit, delete teams, add/remove members
 
 ---
 
@@ -115,43 +131,48 @@ In development, Vite proxies `/api`, `/auth`, and `/password` requests to `https
 ```
 src/
 ├── components/
-│   ├── ui/              # Reusable UI primitives (shadcn/ui)
-│   ├── layout/          # App shell (TopNav, SideNav, CreateModal)
-│   ├── kanban/          # Kanban board (Board, Column, Card)
-│   ├── backlog/         # Backlog & sprint sections
-│   └── issue-table/     # Issue table with expandable epics
-├── contexts/            # Global auth state (React Context)
-├── helpers/             # Utility functions (avatars, status config)
-├── lib/                 # JWT decoding, Tailwind class merging
-├── pages/               # Route-level page components
-├── services/            # API client layer (auth, projects, issues, sprints, users)
-└── types/               # TypeScript interfaces
+│   ├── ui/              # shadcn/ui primitives (never modified)
+│   ├── layout/          # App shell (AuthenticatedLayout, TopNav, SideNav, CreateModal)
+│   ├── issue-table/     # Expandable epic/task table
+│   ├── sprint/          # Sprint issue card
+│   ├── stats/           # Chart components
+│   └── ConfirmDialog.tsx
+├── contexts/            # Auth state (AuthContext, AuthProvider, useAuth)
+├── router/              # Route guards (AdminRoute)
+├── pages/               # Route-level components (Dashboard, Project, Backlog,
+│                        #   SprintBoard, Stats, Profile, Settings, admin/Teams…)
+├── services/            # API client layer (one file per domain)
+├── types/               # TypeScript interfaces (one file per Doctrine entity)
+├── utils/               # fetchWithRefresh, toastHelpers, dateUtils, avatarUtils, issueUtils
+└── lib/                 # cn() (clsx + tailwind-merge), JWT decoding
 ```
 
 ---
 
 ## Roadmap
 
-- [x] User authentication (login, password reset)
+- [x] JWT authentication + silent refresh
+- [x] Password reset by email
 - [x] Project management (CRUD, sidebar navigation)
-- [x] Issue tracking with epic/task hierarchy
+- [x] Issue tracking with epic/task hierarchy, urgency and deadline
+- [x] Full issue detail dialog (subtasks, comments, assignee, status)
 - [x] Kanban board with drag-and-drop
-- [x] Backlog & sprint planning
+- [x] Backlog management with filters
+- [x] Full sprint lifecycle (create, start, close with task redistribution)
+- [x] Burnup/burndown and velocity charts
+- [x] In-app notifications (bell, badge, dropdown, mark as read)
+- [x] User profile (edit info, change password)
 - [x] Admin user management
-- [ ] Statistics & analytics dashboard
-- [ ] Full sprint CRUD (create, edit, close sprints)
-- [ ] Issue detail dialog (full view with comments)
-- [ ] Comment system on issues
-- [ ] Theme management
-- [ ] Internationalization (English-based i18n)
-- [ ] Search functionality
-- [ ] Issue filtering & sorting
+- [x] Admin team management
+- [ ] File attachments on issues
+- [ ] Search across issues and projects
+- [ ] Internationalization (i18n)
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Here's how:
+Contributions are welcome!
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
