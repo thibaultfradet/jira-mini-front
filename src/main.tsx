@@ -7,6 +7,6 @@ import App from './App.tsx';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
-    <Toaster richColors position="top-right" duration={4000} />
+    <Toaster richColors position="bottom-right" duration={4000} />
   </StrictMode>,
 );
