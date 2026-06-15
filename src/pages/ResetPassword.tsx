@@ -45,7 +45,7 @@ export default function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary px-6">
+      <div className="flex min-h-screen items-center justify-center bg-secondary px-6 page-enter">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <KeyRound className="w-8 h-8 text-red-600" />
@@ -65,7 +65,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen page-enter">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0864D1] via-[#0752B0] to-[#064090] relative overflow-hidden">
         <div className="absolute inset-0">

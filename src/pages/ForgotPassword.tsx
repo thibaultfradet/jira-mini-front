@@ -28,7 +28,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen page-enter">
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0864D1] via-[#0752B0] to-[#064090] relative overflow-hidden">
         <div className="absolute inset-0">
