@@ -2,16 +2,17 @@ import { Bookmark } from "lucide-react";
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import AssigneeCell from "@/components/AssigneeCell";
-import StatusBadge from "@/components/StatusBadge";
-import type { Issue } from "@/types";
+import StatusSelect from "@/components/StatusSelect";
+import type { Issue, IssueStatus } from "@/types";
 
 interface TaskRowProps {
   task: Issue;
   projectKey: string;
   onClick: () => void;
+  onStatusChange: (issueId: number, status: IssueStatus) => void;
 }
 
-export default function TaskRow({ task, projectKey, onClick }: TaskRowProps) {
+export default function TaskRow({ task, projectKey, onClick, onStatusChange }: TaskRowProps) {
   return (
     <TableRow
       className="cursor-pointer hover:bg-muted/50 h-11"
@@ -45,7 +46,7 @@ export default function TaskRow({ task, projectKey, onClick }: TaskRowProps) {
       </TableCell>
 
       <TableCell className="py-2">
-        <StatusBadge status={task.status} />
+        <StatusSelect status={task.status} onChange={(s) => onStatusChange(task.id, s)} />
       </TableCell>
     </TableRow>
   );

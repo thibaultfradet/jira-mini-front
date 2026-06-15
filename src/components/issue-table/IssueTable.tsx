@@ -7,9 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { Issue } from '@/types/issue';
+import type { Issue, IssueStatus } from '@/types/issue';
 import { issueService } from '@/services/issue';
 import { useAuth } from '@/contexts/useAuth';
+import { showErrorToast } from '@/utils/toastHelpers';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import EpicRow from './EpicRow';
 
@@ -42,8 +43,25 @@ export default function IssueTable({
   const [expandedEpics, setExpandedEpics] = useState<Set<number>>(new Set());
   const [loadingEpics, setLoadingEpics] = useState<Set<number>>(new Set());
   const [childrenByEpic, setChildrenByEpic] = useState<Record<number, Issue[]>>({});
+  const [statusOverrides, setStatusOverrides] = useState<Record<number, IssueStatus>>({});
   const [sortCol, setSortCol] = useState<SortCol>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const withStatus = (issue: Issue): Issue =>
+    statusOverrides[issue.id] ? { ...issue, status: statusOverrides[issue.id] } : issue;
+
+  const handleStatusChange = async (issueId: number, newStatus: IssueStatus) => {
+    setStatusOverrides((o) => ({ ...o, [issueId]: newStatus }));
+    const updated = await issueService.update(logout, issueId, { status: newStatus });
+    if (!updated) {
+      setStatusOverrides((o) => {
+        const next = { ...o };
+        delete next[issueId];
+        return next;
+      });
+      showErrorToast('Impossible de mettre à jour le statut');
+    }
+  };
 
   const epics = issues.filter((issue) => issue.type === 'epic');
 
@@ -138,15 +156,16 @@ export default function IssueTable({
             sortedEpics.map((epic) => (
               <EpicRow
                 key={epic.id}
-                epic={epic}
+                epic={withStatus(epic)}
                 projectKey={projectKey}
                 isExpanded={expandedEpics.has(epic.id)}
                 isLoading={loadingEpics.has(epic.id)}
-                children={childrenByEpic[epic.id] || []}
+                children={(childrenByEpic[epic.id] || []).map(withStatus)}
                 onToggle={(e) => toggleEpic(epic.id, e)}
                 onClick={() => onIssueClick(epic)}
                 onAddChild={onAddChildClick ? () => onAddChildClick(epic.id) : undefined}
                 onChildClick={onIssueClick}
+                onStatusChange={handleStatusChange}
               />
             ))
           )}

@@ -10,8 +10,8 @@ import {
 import { TableRow, TableCell } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import AssigneeCell from "@/components/AssigneeCell";
-import StatusBadge from "@/components/StatusBadge";
-import type { Issue } from "@/types";
+import StatusSelect from "@/components/StatusSelect";
+import type { Issue, IssueStatus } from "@/types";
 import TaskRow from "./TaskRow";
 
 interface EpicRowProps {
@@ -24,6 +24,7 @@ interface EpicRowProps {
   onClick: () => void;
   onAddChild?: () => void;
   onChildClick: (child: Issue) => void;
+  onStatusChange: (issueId: number, status: IssueStatus) => void;
 }
 
 export default function EpicRow({
@@ -36,6 +37,7 @@ export default function EpicRow({
   onClick,
   onAddChild,
   onChildClick,
+  onStatusChange,
 }: EpicRowProps) {
   return (
     <Fragment>
@@ -109,7 +111,7 @@ export default function EpicRow({
         </TableCell>
 
         <TableCell className="py-2">
-          <StatusBadge status={epic.status} />
+          <StatusSelect status={epic.status} onChange={(s) => onStatusChange(epic.id, s)} />
         </TableCell>
       </TableRow>
 
@@ -120,6 +122,7 @@ export default function EpicRow({
             task={child}
             projectKey={projectKey}
             onClick={() => onChildClick(child)}
+            onStatusChange={onStatusChange}
           />
         ))}
     </Fragment>
