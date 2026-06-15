@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import { sprintService } from '@/services/sprint';
 import { issueService } from '@/services/issue';
 import { useAuth } from '@/contexts/useAuth';
@@ -20,8 +29,10 @@ import { Bug, BookOpen, CheckSquare, Layers, Play, CheckCircle } from 'lucide-re
 import { formatDate } from '@/utils/dateUtils';
 import IssueDialog from './project/IssueDialog';
 import SprintIssueCard from '@/components/sprint/SprintIssueCard';
+import SprintMemberSection from '@/components/sprint/SprintMemberSection';
 
 type SprintIssue = NonNullable<Sprint['issues']>[number];
+type Assignee = NonNullable<SprintIssue['assignee']>;
 
 const typeIcons: Record<string, React.ReactNode> = {
   bug: <Bug className="h-3.5 w-3.5 text-red-500" />,
@@ -36,6 +47,8 @@ const columns: { key: string; label: string; className: string }[] = [
   { key: 'done', label: 'Terminé', className: 'bg-green-50 border-green-200' },
 ];
 
+const UNASSIGNED_KEY = 'unassigned';
+
 export default function SprintBoard() {
   const { teamId } = useParams<{ teamId: string }>();
   const { logout } = useAuth();
@@ -47,7 +60,10 @@ export default function SprintBoard() {
   const [moveToNext, setMoveToNext] = useState(true);
   const [selectedIssueId, setSelectedIssueId] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [activeIssueId, setActiveIssueId] = useState<number | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   useEffect(() => {
     if (!teamId) return;
@@ -80,13 +96,37 @@ export default function SprintBoard() {
   };
 
   const handleStatusChange = async (issue: SprintIssue, newStatus: string) => {
-    if (updatingId) return;
-    setUpdatingId(issue.id);
+    // Optimistic update
+    setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, status: newStatus as IssueStatus } : i)));
     const updated = await issueService.update(logout, issue.id, { status: newStatus });
-    if (updated) {
-      setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, status: updated.status as IssueStatus } : i)));
+    if (!updated) {
+      // Revert on failure
+      setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, status: issue.status } : i)));
     }
-    setUpdatingId(null);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveIssueId(Number(event.active.id));
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveIssueId(null);
+    const { active, over } = event;
+    if (!over) return;
+    // droppable id is `${sectionKey}:${status}` — only the status part drives the change
+    const newStatus = String(over.id).split(':')[1];
+    const issue = issues.find((i) => i.id === Number(active.id));
+    if (!issue || !newStatus || issue.status === newStatus) return;
+    handleStatusChange(issue, newStatus);
+  };
+
+  const toggleSection = (key: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   if (loading) {
@@ -116,6 +156,30 @@ export default function SprintBoard() {
   }
 
   const donePercent = issues.length > 0 ? Math.round((grouped.done.length / issues.length) * 100) : 0;
+
+  // Sections par personne (style Jira) : un tableau par assigné + « Non assigné » en dernier
+  const byAssignee = new Map<number, { assignee: Assignee; issues: SprintIssue[] }>();
+  const unassigned: SprintIssue[] = [];
+  for (const issue of issues) {
+    if (issue.assignee) {
+      const entry = byAssignee.get(issue.assignee.id) ?? { assignee: issue.assignee, issues: [] };
+      entry.issues.push(issue);
+      byAssignee.set(issue.assignee.id, entry);
+    } else {
+      unassigned.push(issue);
+    }
+  }
+  const memberSections: { key: string; assignee: Assignee | null; issues: SprintIssue[] }[] = [...byAssignee.values()]
+    .sort((a, b) =>
+      `${a.assignee.firstName} ${a.assignee.lastName}`.localeCompare(`${b.assignee.firstName} ${b.assignee.lastName}`),
+    )
+    .map((e) => ({ key: `m${e.assignee.id}`, assignee: e.assignee, issues: e.issues }));
+  if (unassigned.length > 0) {
+    memberSections.push({ key: UNASSIGNED_KEY, assignee: null, issues: unassigned });
+  }
+
+  const activeIssue = activeIssueId != null ? issues.find((i) => i.id === activeIssueId) ?? null : null;
+  const openIssue = (id: number) => { setSelectedIssueId(id); setDialogOpen(true); };
 
   return (
     <div className="flex flex-col h-full gap-4">
@@ -162,35 +226,36 @@ export default function SprintBoard() {
         />
       </div>
 
-      {/* Kanban board */}
-      <div className="flex-1 grid grid-cols-3 gap-4 min-h-0">
-        {columns.map((col) => (
-          <div key={col.key} className={`flex flex-col rounded-lg border ${col.className} overflow-hidden`}>
-            <div className="px-3 py-2 border-b bg-white/50">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{col.label}</span>
-                <span className="text-xs text-muted-foreground bg-white rounded-full px-2 py-0.5 border">
-                  {grouped[col.key].length}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
-              {grouped[col.key].map((issue) => (
-                <SprintIssueCard
-                  key={issue.id}
-                  issue={issue}
-                  onOpen={() => { setSelectedIssueId(issue.id); setDialogOpen(true); }}
-                  onStatusChange={handleStatusChange}
-                  currentColumn={col.key}
-                  loading={updatingId === issue.id}
-                  typeIconsMap={typeIcons}
-                />
-              ))}
-            </div>
+      {/* Tableaux de sprint par personne (drag & drop) */}
+      {memberSections.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <CheckSquare className="h-10 w-10 text-muted-foreground mb-3" />
+          <p className="text-muted-foreground">Aucune tâche dans ce sprint</p>
+        </div>
+      ) : (
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+            {memberSections.map((section) => (
+              <SprintMemberSection
+                key={section.key}
+                sectionKey={section.key}
+                assignee={section.assignee}
+                issues={section.issues}
+                columns={columns}
+                collapsed={collapsedSections.has(section.key)}
+                onToggle={() => toggleSection(section.key)}
+                onOpenIssue={openIssue}
+                typeIconsMap={typeIcons}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+          <DragOverlay>
+            {activeIssue ? (
+              <SprintIssueCard issue={activeIssue} onOpen={() => {}} typeIconsMap={typeIcons} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
 
       {/* Complete sprint modal */}
       <Dialog open={showCompleteModal} onOpenChange={setShowCompleteModal}>
