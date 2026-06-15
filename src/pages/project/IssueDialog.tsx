@@ -17,8 +17,9 @@ import type { SubTask } from '@/types/subtask';
 import type { Comment } from '@/types/comment';
 import type { User } from '@/types/user';
 import { formatDate, getDeadlineBadgeClass } from '@/utils/dateUtils';
+import { statusConfig } from '@/utils/issueUtils';
 import { showSuccessToast } from '@/utils/toastHelpers';
-import { Plus, Send, Calendar, AlertTriangle, User as UserIcon } from 'lucide-react';
+import { Plus, Send, Calendar, AlertTriangle, User as UserIcon, Bug, BookOpen, CheckSquare, Layers, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 
@@ -41,36 +42,57 @@ const statusLabels: Record<string, string> = {
   done: 'Terminé',
 };
 
+const typeIcons: Record<string, React.ReactNode> = {
+  bug: <Bug className="h-3.5 w-3.5 text-red-500 shrink-0" />,
+  story: <BookOpen className="h-3.5 w-3.5 text-green-600 shrink-0" />,
+  task: <CheckSquare className="h-3.5 w-3.5 text-blue-500 shrink-0" />,
+  epic: <Layers className="h-3.5 w-3.5 text-purple-500 shrink-0" />,
+};
+
 export default function IssueDialog({ issueId, open, onOpenChange }: Props) {
   const { logout } = useAuth();
   const [issue, setIssue] = useState<Issue | null>(null);
   const [subTasks, setSubTasks] = useState<SubTask[]>([]);
+  const [children, setChildren] = useState<Issue[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newSubTask, setNewSubTask] = useState('');
   const [newComment, setNewComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadedIssueId, setLoadedIssueId] = useState<number | null>(null);
+  // Navigation interne (breadcrumb / enfants) — surcharge l'issueId fourni par le parent
+  const [navId, setNavId] = useState<number | null>(null);
+  const [prevIssueId, setPrevIssueId] = useState<number | null>(issueId);
 
-  // Derived loading: spinner when open issueId differs from last loaded id
-  const loading = open && !!issueId && loadedIssueId !== issueId;
+  // Réinitialise la navigation interne quand le parent ouvre une autre tâche
+  if (issueId !== prevIssueId) {
+    setPrevIssueId(issueId);
+    setNavId(null);
+  }
+
+  const currentId = navId ?? issueId;
+
+  // Derived loading: spinner when open id differs from last loaded id
+  const loading = open && !!currentId && loadedIssueId !== currentId;
 
   useEffect(() => {
-    if (!open || !issueId) return;
+    if (!open || !currentId) return;
 
     Promise.all([
-      issueService.getById(logout, issueId),
-      issueService.getSubTasks(logout, issueId),
-      issueService.getComments(logout, issueId),
+      issueService.getById(logout, currentId),
+      issueService.getSubTasks(logout, currentId),
+      issueService.getChildren(logout, currentId),
+      issueService.getComments(logout, currentId),
       userService.getAll(logout),
-    ]).then(([iss, subs, comms, usrs]) => {
+    ]).then(([iss, subs, kids, comms, usrs]) => {
       setIssue(iss);
       setSubTasks(subs);
+      setChildren(kids);
       setComments(comms);
       setUsers(usrs);
-      setLoadedIssueId(issueId);
+      setLoadedIssueId(currentId);
     });
-  }, [open, issueId, logout]);
+  }, [open, currentId, logout]);
 
   const handleStatusChange = async (status: string) => {
     if (!issue) return;
@@ -129,8 +151,8 @@ export default function IssueDialog({ issueId, open, onOpenChange }: Props) {
   const completedCount = subTasks.filter((s) => s.isDone).length;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setNavId(null); onOpenChange(o); }}>
+      <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-y-auto">
         {loading || !issue ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
@@ -139,14 +161,33 @@ export default function IssueDialog({ issueId, open, onOpenChange }: Props) {
           <>
             <DialogHeader>
               <div className="flex items-start gap-3">
-                <div className="flex-1">
-                  <p className="text-xs text-muted-foreground mb-1 uppercase font-semibold">{issue.type}</p>
+                <div className="flex-1 min-w-0">
+                  {/* Fil d'Ariane : (parent >) tâche courante — parent cliquable */}
+                  <nav className="flex items-center gap-1 text-xs text-muted-foreground mb-1.5 min-w-0">
+                    {issue.parent && (
+                      <>
+                        <button
+                          onClick={() => setNavId(issue.parent!.id)}
+                          className="flex items-center gap-1 min-w-0 max-w-[40%] hover:text-foreground hover:underline cursor-pointer"
+                          title="Ouvrir l'élément parent"
+                        >
+                          {typeIcons.epic}
+                          <span className="truncate">{issue.parent.title}</span>
+                        </button>
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      </>
+                    )}
+                    <span className="flex items-center gap-1 min-w-0 font-medium text-foreground">
+                      {typeIcons[issue.type] ?? typeIcons.task}
+                      <span className="truncate uppercase">{issue.type}</span>
+                    </span>
+                  </nav>
                   <DialogTitle className="text-xl leading-tight">{issue.title}</DialogTitle>
                 </div>
               </div>
             </DialogHeader>
 
-            <div className="grid grid-cols-3 gap-6 mt-2">
+            <div className="grid grid-cols-3 gap-8 mt-4">
               {/* Main content */}
               <div className="col-span-2 space-y-6">
                 {/* Description */}
@@ -157,7 +198,36 @@ export default function IssueDialog({ issueId, open, onOpenChange }: Props) {
                   </p>
                 </div>
 
-                {/* Sub-tasks */}
+                {/* Tâches associées (epics) */}
+                {issue.type === 'epic' && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">
+                      Tâches associées {children.length > 0 && <span className="text-muted-foreground font-normal">({children.length})</span>}
+                    </h4>
+                    {children.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">Aucune tâche associée</p>
+                    ) : (
+                      <div className="border rounded-lg divide-y">
+                        {children.map((child) => (
+                          <button
+                            key={child.id}
+                            onClick={() => setNavId(child.id)}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer text-left"
+                          >
+                            {typeIcons[child.type] ?? typeIcons.task}
+                            <span className="flex-1 min-w-0 truncate text-sm">{child.title}</span>
+                            <span className={`shrink-0 inline-flex items-center text-xs px-2 py-0.5 rounded font-semibold ${statusConfig[child.status]?.className ?? statusConfig.todo.className}`}>
+                              {statusConfig[child.status]?.label ?? statusConfig.todo.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Sub-tasks (checklist) — masqué pour les epics */}
+                {issue.type !== 'epic' && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-semibold">
@@ -200,6 +270,7 @@ export default function IssueDialog({ issueId, open, onOpenChange }: Props) {
                     </Button>
                   </div>
                 </div>
+                )}
 
                 {/* Comments */}
                 <div>
