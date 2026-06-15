@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import UserAvatar from '@/components/UserAvatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,14 +23,11 @@ import { LayoutDashboard, Zap, FolderKanban, Search, ListChecks, BarChart2, User
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/useAuth';
 import { useTeamPreference } from '@/contexts/useTeamPreference';
-import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 
 export default function SideNav() {
   const location = useLocation();
   const { user, isAdmin, logout } = useAuth();
   const { selectedTeamId } = useTeamPreference();
-  const initials = user ? getInitials(user.firstName, user.lastName) : '??';
-  const avatarColor = getAvatarColor(initials);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -171,11 +168,7 @@ export default function SideNav() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-muted transition-colors cursor-pointer focus:outline-none group">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className={`${avatarColor} text-white text-xs font-medium`}>
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar user={user} className="h-8 w-8 shrink-0" textClassName="text-xs font-medium" />
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-sm font-medium truncate leading-tight">{user?.firstName} {user?.lastName}</p>
                   <p className="text-[11px] text-muted-foreground truncate leading-tight">
@@ -185,23 +178,45 @@ export default function SideNav() {
                 <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-56 mb-1">
-              <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <DropdownMenuContent side="top" align="start" className="w-64 mb-1 p-0 overflow-hidden">
+              {/* En-tête enrichi */}
+              <div className="flex items-center gap-3 p-3 bg-muted/40">
+                <UserAvatar user={user} className="h-10 w-10 shrink-0" textClassName="text-sm font-medium" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate leading-tight">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <span
+                    className={cn(
+                      'inline-block mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded',
+                      isAdmin ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {isAdmin ? 'Administrateur' : 'Utilisateur'}
+                  </span>
+                </div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  Mon profil
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
-                Déconnexion
-              </DropdownMenuItem>
+              <DropdownMenuSeparator className="m-0" />
+              <div className="p-1">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Mon profil
+                  </Link>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="cursor-pointer">
+                      <UserCog className="mr-2 h-4 w-4" />
+                      Administration
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-red-600 focus:text-red-600 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Déconnexion
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
