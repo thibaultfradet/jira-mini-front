@@ -3,11 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import UserAvatar from '@/components/UserAvatar';
 import { useAuth } from '@/contexts/useAuth';
 import { userService } from '@/services/user';
 import { showSuccessToast, showErrorToast } from '@/utils/toastHelpers';
-import { getInitials, getAvatarColor } from '@/utils/avatarUtils';
 
 export default function Profile() {
   const { user, logout, refetchUser } = useAuth();
@@ -20,9 +19,6 @@ export default function Profile() {
   const [savingPassword, setSavingPassword] = useState(false);
 
   if (!user) return null;
-
-  const initials = getInitials(user.firstName, user.lastName);
-  const avatarColor = getAvatarColor(initials);
 
   const handleSaveInfo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,11 +61,7 @@ export default function Profile() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className={`${avatarColor} text-white text-xl font-semibold`}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar user={user} className="h-16 w-16" textClassName="text-xl font-semibold" />
             <div>
               <p className="text-lg font-semibold">{user.firstName} {user.lastName}</p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
