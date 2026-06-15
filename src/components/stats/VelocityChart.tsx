@@ -22,12 +22,12 @@ function shortName(name: string): string {
 
 export function VelocityChart({ data, isLoading }: VelocityChartProps) {
   if (isLoading) {
-    return <Skeleton className="h-72 w-full rounded-lg" />;
+    return <Skeleton className="h-130 w-full rounded-lg" />;
   }
 
   if (data.length === 0) {
     return (
-      <div className="h-72 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-130 flex items-center justify-center text-muted-foreground text-sm">
         Aucun sprint complété ou actif pour cette équipe.
       </div>
     );
@@ -41,7 +41,7 @@ export function VelocityChart({ data, isLoading }: VelocityChartProps) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={520}>
       <BarChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
@@ -70,6 +70,7 @@ export function VelocityChart({ data, isLoading }: VelocityChartProps) {
           }}
         />
         <Legend
+          align="center"
           formatter={(value) => {
             const labels: Record<string, string> = {
               committed: 'Prévu (Committed)',

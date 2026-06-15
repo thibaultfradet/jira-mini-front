@@ -125,7 +125,7 @@ export default function StatsChart() {
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6">
       {/* Back link */}
       <button
         onClick={() => navigate('/stats')}
@@ -211,7 +211,7 @@ export default function StatsChart() {
       </div>
 
       {/* Chart */}
-      <div>
+      <div className="w-full">
         {chartType === 'burndown' && (
           <>
             {!selectedTeamId ? (
@@ -220,6 +220,8 @@ export default function StatsChart() {
               <BurndownChart
                 data={sprintStats?.dailyData ?? []}
                 totalPoints={sprintStats?.totalPoints ?? 0}
+                startDate={sprintStats?.sprint.startDate ?? ''}
+                endDate={sprintStats?.sprint.endDate ?? ''}
                 isLoading={loadingStats || loadingSprints}
               />
             )}

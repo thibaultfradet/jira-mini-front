@@ -10,11 +10,16 @@ import {
 } from 'recharts';
 import type { DailyDataPoint } from '@/types/custom/stats';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getWeekendBands } from './weekendBands';
+import { WeekendBackground } from './WeekendBackground';
+import { withWeekendFlatIdeal } from './burndownIdeal';
 
 interface BurndownChartProps {
   data: DailyDataPoint[];
   isLoading: boolean;
   totalPoints: number;
+  startDate: string;
+  endDate: string;
 }
 
 function formatDate(dateStr: string): string {
@@ -27,28 +32,30 @@ const LABELS: Record<string, string> = {
   idealRemaining: 'Ligne idéale',
 };
 
-export function BurndownChart({ data, isLoading, totalPoints }: BurndownChartProps) {
+export function BurndownChart({ data, isLoading, totalPoints, startDate, endDate }: BurndownChartProps) {
   if (isLoading) {
-    return <Skeleton className="h-72 w-full rounded-lg" />;
+    return <Skeleton className="h-130 w-full rounded-lg" />;
   }
 
   if (data.length === 0) {
     return (
-      <div className="h-72 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-130 flex items-center justify-center text-muted-foreground text-sm">
         Aucune donnée disponible pour ce sprint.
       </div>
     );
   }
 
-  const chartData = data.map((d) => ({
+  const chartData = withWeekendFlatIdeal(data, totalPoints, startDate, endDate).map((d) => ({
     ...d,
     date: formatDate(d.date),
   }));
+  const weekendBands = getWeekendBands(data);
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={520}>
       <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+        <WeekendBackground bands={weekendBands} />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis
           domain={[0, totalPoints + Math.ceil(totalPoints * 0.1)]}
@@ -70,7 +77,7 @@ export function BurndownChart({ data, isLoading, totalPoints }: BurndownChartPro
             );
           }}
         />
-        <Legend formatter={(value) => LABELS[value] ?? value} />
+        <Legend align="center" formatter={(value) => LABELS[value] ?? value} />
         <Line
           type="stepAfter"
           dataKey="remainingPoints"
@@ -78,6 +85,7 @@ export function BurndownChart({ data, isLoading, totalPoints }: BurndownChartPro
           strokeWidth={2}
           dot={{ r: 3 }}
           activeDot={{ r: 5 }}
+          connectNulls
         />
         <Line
           type="linear"

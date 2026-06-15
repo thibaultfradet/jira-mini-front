@@ -25,12 +25,12 @@ function formatDate(dateStr: string): string {
 
 export function BurnupChart({ data, isLoading, totalPoints }: BurnupChartProps) {
   if (isLoading) {
-    return <Skeleton className="h-72 w-full rounded-lg" />;
+    return <Skeleton className="h-130 w-full rounded-lg" />;
   }
 
   if (data.length === 0) {
     return (
-      <div className="h-72 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-130 flex items-center justify-center text-muted-foreground text-sm">
         Aucune donnée disponible pour ce sprint.
       </div>
     );
@@ -43,7 +43,7 @@ export function BurnupChart({ data, isLoading, totalPoints }: BurnupChartProps) 
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={520}>
       <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
@@ -73,6 +73,7 @@ export function BurnupChart({ data, isLoading, totalPoints }: BurnupChartProps) 
           }}
         />
         <Legend
+          align="center"
           formatter={(value) => {
             const labels: Record<string, string> = {
               completedPoints: 'Travail complété',
@@ -100,12 +101,13 @@ export function BurnupChart({ data, isLoading, totalPoints }: BurnupChartProps) 
           dot={false}
         />
         <Line
-          type="stepAfter"
+          type="linear"
           dataKey="completedPoints"
           stroke="#10b981"
           strokeWidth={2}
           dot={{ r: 3 }}
           activeDot={{ r: 5 }}
+          connectNulls
         />
       </ComposedChart>
     </ResponsiveContainer>
