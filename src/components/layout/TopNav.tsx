@@ -21,6 +21,8 @@ import { useTeamPreference } from '@/contexts/useTeamPreference';
 import { Plus, Search, Bell, Check, UsersRound } from 'lucide-react';
 import CreateModal from './CreateModal';
 import { notificationService } from '@/services/notification';
+import { getNotificationVisual } from '@/utils/notificationUtils';
+import { formatDatetime } from '@/utils/dateUtils';
 import type { Notification } from '@/types/notification';
 
 export default function TopNav() {
@@ -30,6 +32,7 @@ export default function TopNav() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [exitingIds, setExitingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     notificationService.getAll(logout).then(({ notifications: n, unreadCount: c }) => {
@@ -38,17 +41,33 @@ export default function TopNav() {
     });
   }, [logout]);
 
+  // Joue l'animation de sortie (glisse vers la droite) puis retire réellement les notifs
+  const animateOut = (ids: number[]) => {
+    setExitingIds((prev) => new Set([...prev, ...ids]));
+    setTimeout(() => {
+      setNotifications((prev) => prev.map((n) => (ids.includes(n.id) ? { ...n, isRead: true } : n)));
+      setExitingIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, 300);
+  };
+
   const handleMarkRead = async (id: number) => {
     await notificationService.markRead(logout, id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     setUnreadCount((c) => Math.max(0, c - 1));
+    animateOut([id]);
   };
 
   const handleMarkAllRead = async () => {
     await notificationService.markAllRead(logout);
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    const ids = notifications.filter((n) => !n.isRead).map((n) => n.id);
     setUnreadCount(0);
+    animateOut(ids);
   };
+
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
 
   return (
     <>
@@ -82,7 +101,12 @@ export default function TopNav() {
           {teams.length > 1 && selectedTeamId && (
             <Select
               value={String(selectedTeamId)}
-              onValueChange={(v) => setSelectedTeamId(Number(v))}
+              onValueChange={(v) => {
+                if (Number(v) === selectedTeamId) return;
+                setSelectedTeamId(Number(v));
+                // Rafraîchit la page pour recharger toutes les données liées à l'équipe
+                window.location.reload();
+              }}
             >
               <SelectTrigger className="h-8 gap-1.5 border-border/60 bg-muted/40 hover:bg-muted text-sm focus:ring-0 w-auto min-w-27.5 max-w-45 [&>span]:truncate">
                 <UsersRound className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -102,56 +126,65 @@ export default function TopNav() {
               <Button variant="ghost" size="icon" className="h-9 w-9 relative">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center bg-red-500 border-0">
+                  <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 text-[10px] leading-none flex items-center justify-center rounded-full bg-red-500 border-0 ring-2 ring-white">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </Badge>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-semibold">Notifications</span>
+            <DropdownMenuContent align="end" className="w-96 p-0">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-base font-semibold">Notifications</span>
                 {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary" onClick={handleMarkAllRead}>
+                  <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-primary hover:bg-transparent" onClick={handleMarkAllRead}>
                     Tout marquer lu
                   </Button>
                 )}
               </div>
-              <DropdownMenuSeparator />
-              <div className="max-h-72 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Aucune notification</p>
-                ) : (
-                  notifications.slice(0, 10).map((notif) => (
-                    <div
-                      key={notif.id}
-                      className={`flex items-start gap-2 px-3 py-2 hover:bg-muted/50 ${!notif.isRead ? 'bg-blue-50' : ''}`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-foreground leading-snug">{notif.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {new Date(notif.createdAt).toLocaleDateString('fr-FR')}
-                        </p>
-                      </div>
-                      {!notif.isRead && (
-                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => handleMarkRead(notif.id)}>
-                          <Check className="h-3 w-3" />
-                        </Button>
-                      )}
+              <DropdownMenuSeparator className="m-0" />
+              <div className="max-h-96 overflow-y-auto overflow-x-hidden">
+                {unreadNotifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+                    <div className="rounded-full bg-muted p-3">
+                      <Bell className="h-5 w-5 text-muted-foreground" />
                     </div>
-                  ))
+                    <p className="text-sm text-muted-foreground">Aucune notification non lue</p>
+                  </div>
+                ) : (
+                  unreadNotifications.slice(0, 10).map((notif) => {
+                    const visual = getNotificationVisual(notif.type);
+                    return (
+                      <div
+                        key={notif.id}
+                        className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 bg-primary/5 transition-all duration-300 ease-in ${
+                          exitingIds.has(notif.id) ? 'translate-x-full opacity-0' : ''
+                        }`}
+                      >
+                        <div className={`shrink-0 rounded-full p-2 ${visual.className}`}>{visual.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground leading-snug">{notif.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{formatDatetime(notif.createdAt)}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-primary"
+                          title="Marquer comme lu"
+                          onClick={() => handleMarkRead(notif.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })
                 )}
               </div>
-              {notifications.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <div className="px-3 py-2">
-                    <Link to="/notifications" onClick={() => setNotifOpen(false)} className="text-xs text-primary hover:underline">
-                      Voir toutes les notifications
-                    </Link>
-                  </div>
-                </>
-              )}
+              <DropdownMenuSeparator className="m-0" />
+              <div className="px-4 py-3">
+                <Link to="/notifications" onClick={() => setNotifOpen(false)} className="text-sm text-primary hover:underline font-medium">
+                  Voir toutes les notifications
+                </Link>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 

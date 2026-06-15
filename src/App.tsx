@@ -13,6 +13,7 @@ import Project from '@/pages/Project';
 import Backlog from '@/pages/Backlog';
 import SprintBoard from '@/pages/SprintBoard';
 import Profile from '@/pages/Profile';
+import Notifications from '@/pages/Notifications';
 import Stats from '@/pages/Stats';
 import StatsChart from '@/pages/StatsChart';
 import AdminTeams from '@/pages/admin/Teams';
@@ -35,6 +36,7 @@ function App() {
             <Route path="/backlog" element={<Backlog />} />
             <Route path="/teams/:teamId/sprint" element={<SprintBoard />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/stats/:chartType" element={<StatsChart />} />
 
